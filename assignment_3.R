@@ -7,13 +7,13 @@ data <- read.csv(here("HW3_data.csv")) %>% clean_names()
 
 # Generic demand functions
 ##P(Q)
-inverse_demand <- function(q, model){
+fn_demand <- function(q, model){
   p <- model$intercept + model$slope*q
   return(p)
 }
 
 ## Inverse P(Q) to get Q(P)
-demand <- function(p, model){
+fn_inverse_demand <- function(p, model){
   q <- (p - model$intercept)/model$slope
   return(q)
 }
@@ -27,13 +27,13 @@ demand_model_low['slope'] <- lm_low$coefficients[[2]]
 
 # build functions
 ##P(Q)
-inverse_demand_low <- function(q){
+demand_low <- function(q){
   p <- demand_model_low$intercept + demand_model_low$slope*q
   return(p)
 }
 
 ## Inverse P(Q) to get Q(P)
-demand_low <- function(p){
+demand_low_inv <- function(p){
   q <- (p - demand_model_low$intercept)/demand_model_low$slope
   return(q)
 }
@@ -46,20 +46,20 @@ demand_model_high['slope'] <- lm_high$coefficients[[2]]
 
 # build functions
 ##P(Q)
-inverse_demand_high <- function(q){
+demand_high <- function(q){
   p <- demand_model_high$intercept + demand_model_high$slope*q
   return(p)
 }
 
 ## Inverse P(Q) to get Q(P)
-demand_high <- function(p){
+demand_high_inv <- function(p){
   q <- (p - demand_model_high$intercept)/demand_model_high$slope
   return(q)
 }
 
 # Get horizontal aggregate demand (combined quantity at given price)
 demand_agg <- function(p) {
-  demand_high(p) + demand_low(p)
+  demand_high_inv(p) + demand_low_inv(p)
 }
 
 # Other variables
@@ -89,15 +89,25 @@ mec_per_gal <- scc_co2 * co2_per_gal/pounds_per_ton
 ggplot(data = data.frame(x = 0), mapping = aes(x = x)) +
   xlim(0,20) +
   ylim(0,800000) +
-  stat_function(fun = demand_high, size = 2) +
-  stat_function(fun = demand_low, size = 2) +
+  stat_function(fun = demand_high_inv, size = 2) +
+  stat_function(fun = demand_low_inv, size = 2) +
   stat_function(fun = demand_agg, size = 2, col = "green") +
   stat_function(fun = mcp_gas_inv, size = 2) +
   geom_vline(xintercept = 3, linetype = "dashed") +
-  geom_vline(xintercept = mec_per_gal, linetype = "dashed", col = "red") +
   geom_hline(yintercept = demand_agg(current_gas_price), linetype = "dashed") +
+  geom_vline(xintercept = mec_per_gal, linetype = "dashed", col = "red") +
   theme_minimal() +
   labs(y = "quantity", x = "price") + coord_flip()
+
+
+
+msc_gas <- function(q) {
+  mcp_gas(q) + mec_per_gal
+}
+
+msc_gas_inv <- function(p) {
+  (p - mec_per_gal)*demand_agg(current_gas_price)/current_gas_price
+}
 
 
 
