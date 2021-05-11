@@ -120,14 +120,17 @@ ggplot(data = data.frame(x = 0), mapping = aes(x = x)) +
   stat_function(fun = demand_high, size = 2) +
   stat_function(fun = demand_low, size = 2) +
   stat_function(fun = mcp_gas, size = 2) +
-  stat_function(fun = msc_gas, size = 1, col = "red") +
+  #stat_function(fun = msc_gas, size = 1, col = "red") +
   geom_hline(yintercept = mec_per_gal, linetype = "dashed", col = "red") +
   theme_minimal() +
   labs(x = "quantity", y = "price") +
   geom_segment(aes(x = 0, xend = uniroot(function(x)  demand_high(x) - demand_model_low$intercept  , c(0,600000), tol=1e-8)$root, 
                    y = demand_model_high$intercept, yend = demand_model_low$intercept), size = 2, col = "green") +
   geom_segment(aes(x = demand_high_inv(demand_model_low$intercept), xend = demand_agg(0), 
-                   y = demand_model_low$intercept, yend = 0), size = 2, col = "green")
+                   y = demand_model_low$intercept, yend = 0), size = 2, col = "green") +
+  geom_hline(yintercept = status_quo_price, linetype = "dashed", col = "black") + 
+  geom_vline(xintercept = status_quo_quantity, linetype = "dashed", col = "black")
+  
 
 ####
 # 2. 
@@ -226,13 +229,13 @@ write_csv(out_table, here("question5.csv"))
 ####
 ##P(Q)
 new_demand_high <- function(q){
-  p <- demand_high(q)*0.5
+  p <- (demand_model_high$intercept/2) + demand_model_high$slope*q
   return(p)
 }
 
 ## Inverse P(Q) to get Q(P)
 new_demand_high_inv <- function(p){
-  q <- ((2*p - demand_model_high$intercept)/demand_model_high$slope)
+  q <- (p - demand_model_high$intercept/2)/(demand_model_high$slope)
   return(q)
 }
 
@@ -240,11 +243,11 @@ new_demand_agg <- function(p) {
   new_demand_high_inv(p) + demand_low_inv(p)
 }
 
-new_price <- uniroot(function(x)  new_demand_agg(x) - mcp_gas_inv(x)  , c(0,800000), tol=1e-8)$root
+new_price <- uniroot(function(x)  new_demand_agg(x) - mcp_gas_inv(x)  , c(0,1000000), tol=1e-8)$root
 new_quantity <-  mcp_gas_inv(new_price)
 new_env_cost <- new_quantity * mec_per_gal
 
-desired_price_after_tax <- uniroot(function(x)  demand_agg(x) - new_quantity  , c(0,800000), tol=1e-8)$root
+desired_price_after_tax <- uniroot(function(x)  demand_agg(x) - new_quantity  , c(0,1000000), tol=1e-8)$root
 new_tax <- desired_price_after_tax-new_price
 
 mcp_w_tax <- function(q) {
@@ -265,7 +268,7 @@ ggplot(data = data.frame(x = 0), mapping = aes(x = x)) +
   stat_function(fun = new_demand_agg, size = 2, col = "green") +
   stat_function(fun = mcp_gas_inv, size = 2) +
   stat_function(fun = mcp_w_tax_inv, size = 1, color = "red") +
-  #stat_function(fun = msc_gas_inv, size = 1, color= "red") +
+  stat_function(fun = msc_gas_inv, size = 1, color= "red") +
   geom_vline(xintercept = new_price, linetype = "dashed") +
   geom_hline(yintercept = new_quantity, linetype = "dashed") +
   geom_vline(xintercept = mec_per_gal, linetype = "dashed", col = "red") +
@@ -290,6 +293,28 @@ ggplot(data = data.frame(x = 0), mapping = aes(x = x)) +
   geom_segment(aes(x = demand_high_inv(demand_model_low$intercept), xend = demand_agg(0), 
                    y = demand_model_low$intercept, yend = 0), size = 2, col = "green") +
   geom_point(aes(x = optimal_quantity, y = optimal_price), size = 3)
+
+
+# Test plot
+ggplot(data = data.frame(x = 0), mapping = aes(x = x)) +
+  xlim(0,800000) +
+  ylim(0,16) +
+  stat_function(fun = demand_high, size = 2) +
+  stat_function(fun = demand_low, size = 2) +
+  stat_function(fun = mcp_gas, size = 2) +
+  stat_function(fun = new_demand_high, size = 2, col="blue") +
+  stat_function(fun = msc_gas, size = 1, col = "red") +
+  geom_hline(yintercept = optimal_price, linetype = "dashed", col = "red") +
+  geom_hline(yintercept = mcp_gas(optimal_quantity), linetype = "dashed", col = "red") +
+  geom_vline(xintercept = optimal_quantity, linetype = "dashed", col = "red") +
+  theme_minimal() +
+  labs(x = "quantity", y = "price") +
+  geom_segment(aes(x = 0, xend = uniroot(function(x)  demand_high(x) - demand_model_low$intercept  , c(0,600000), tol=1e-8)$root, 
+                   y = demand_model_high$intercept, yend = demand_model_low$intercept), size = 2, col = "green") +
+  geom_segment(aes(x = demand_high_inv(demand_model_low$intercept), xend = demand_agg(0), 
+                   y = demand_model_low$intercept, yend = 0), size = 2, col = "green") +
+geom_hline(yintercept = mec_per_gal, linetype = "dashed", col = "red")
+  
 
 
 
